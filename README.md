@@ -53,4 +53,7 @@ Bug di atasi, menggunakan pendekatan cache  saat membuat invoice pertama. Cek mu
 Bugs: pembuatan invoice kena rate limiting ketika ada lebih dari 4x permintaan.
 Bugs di atasi, menghapus pengambilan cache mutasi dan menambahka tanggal sebagai parameter batas invoice di buat. Saat melakukan cek mutasi, pencarian hanya akan berfokus pada data yang tanggalnya lebih tingggi dari tanggal invoice di buat. 
 
+Masih mengalami error dimana proses pengecekan memakan waktu lama 30 detik, jika di percepat masih terkena rate limiting. 
+Nanti update terbaru bakalan di informasikan di changelog.
+
 Selengkapnya lihat di CHANGELOG.md
