@@ -14,33 +14,52 @@ let availableCodes = Array.from({ length: 1000 }, (_, i) => i + 1); // 1 - 1000
 let usedCodes = {};
 const PORT = 3000;
 const invoices = {}; // Menyimpan data invoice
+const logFilePath = path.join(__dirname, 'app.log');
 
-// Endpoint untuk membuat invoice
-/*
-app.post('/api/buatinvoice', (req, res) => {
-    const merchant_code = req.body.merchant_code;
-    const api_key       = req.body.api_key;
-    const callback_url  = req.body.callback_url;
-    const amount        = req.body.amount;
-    const interval      = req.body.interval;
-    if (!merchant_code || !api_key || !callback_url || !amount || !interval) {
-        return res.status(400).json({ ok : false, error: 'Parameter tidak valid kak' });
+
+
+function getLocalAndNetworkIPs() {
+    const interfaces = os.networkInterfaces();
+    const ips = { local: '127.0.0.1', network: null };
+    for (const name in interfaces) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                ips.network = iface.address;
+            }
+        }
     }
+    return ips;
+}
 
-    if (availableCodes.length === 0) {
-        return res.status(400).json({ ok : false, error: 'Kode unik saat ini sedang tidak tersedia, mohon coba kembali nanti.' });
+async function writeLog(message) {
+    try {
+      let data = '';
+      try {
+        data = await fs.readFile(logFilePath, 'utf8');
+      } catch (err) {
+        if (err.code !== 'ENOENT') {
+          console.error('Error membaca file log:', err);
+          return;
+        }
+      }
+
+      const logLines = data ? data.split('\n') : [];
+      logLines.push(new Date().toISOString() +' : ' + message);
+      if (logLines.length > 1000) {
+        logLines.splice(0, logLines.length - 1000); 
+      }
+  
+      const newLogContent = logLines.join('\n');
+      await fs.writeFile(logFilePath, newLogContent, 'utf8');
+    } catch (err) {
+      console.error('Error dalam menulis log:', err);
     }
+  }
 
-    const uniqueCode = availableCodes.shift(); // Kita ambil yang pertama
-    const invoiceAmount = amount + uniqueCode;
-    const invoiceId = `INV-${Date.now()}-${uniqueCode}`;
 
-    usedCodes[uniqueCode] = true;
-    invoices[invoiceId] = { merchant_code, api_key, callback_url, amount, uniqueCode, invoiceAmount, interval, createdAt: Date.now() };
-    console.log(`Invoice baru : ${invoiceId} jumlah ${invoiceAmount}`);
-    res.json({ ok : true, invoice_id: invoiceId, amount: invoiceAmount });
-});
-*/
+
+
+
 
 
 app.post('/api/buatinvoice', async (req, res) => {
@@ -70,6 +89,7 @@ app.post('/api/buatinvoice', async (req, res) => {
     };
 
     console.log(`Invoice baru: ${invoiceId}, jumlah: ${invoiceAmount}`);
+    writeLog(`Invoice baru: ${invoiceId}, jumlah ${invoiceAmount}`);
     res.json({ ok: true, invoice_id: invoiceId, amount: invoiceAmount, unique : uniqueCode });
 });
 
@@ -111,7 +131,7 @@ setInterval(async () => {
     try {
         const response = await axios.get(urlParam);
         const mutasiBaru = response.data.data || [];
-        console.log(`mengammbil mutasi untuk }`);
+        writeLog(`GET API : Mengambil mutasi untuk merchant ${merchant_code}`);
         for (const [invoiceId, invoice] of Object.entries(invoices)) {
             const { callback_url, uniqueCode, invoiceAmount, interval, createdAt } = invoice;
 
@@ -127,16 +147,18 @@ setInterval(async () => {
                 await axios.post(callback_url, { invoice_id: invoiceId, status: 'PAID', data: transaksiValid[0] });
                 delete invoices[invoiceId];
                 availableCodes.push(uniqueCode);
+                writeLog(`DONE : ${merchant_code} Kode unik Dibalikin ${uniqueCode}`);
             } else if (now > createdAt + interval * 1000) {
                 console.log(`❌ Invoice EXPIRED: ${invoiceId}, jumlah: ${invoiceAmount}`);
                 await axios.post(callback_url, { invoice_id: invoiceId, status: 'EXPIRED' });
                 delete invoices[invoiceId];
                 availableCodes.push(uniqueCode);
-                //console.log(`KODE TERSEDIA : ${availableCodes} `);
+                writeLog(`DONE : ${merchant_code} Kode unik Dibalikin ${uniqueCode}`);
             }
         }
     } catch (error) {
         console.error(`Gagal Ambil Mutasi:`, error.message);
+        writeLog(`ERROR : ${merchant_code} Error ${error.message}`);
     }
 }, 20000);
 
@@ -146,18 +168,10 @@ setInterval(async () => {
 
 
 
-function getLocalAndNetworkIPs() {
-    const interfaces = os.networkInterfaces();
-    const ips = { local: '127.0.0.1', network: null };
-    for (const name in interfaces) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                ips.network = iface.address;
-            }
-        }
-    }
-    return ips;
-}
+
+
+
+
 
 const { local, network } = getLocalAndNetworkIPs();
 app.listen(PORT, () => {
