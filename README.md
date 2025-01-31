@@ -18,4 +18,12 @@ Url servernya berikut ini
 Untuk kebutuhan development, callback dii arahin ke /api/callback di lokal server. Ini bisa di arahkan ke mana saja project yang membutuhkan
 mekanisme pembayaran. Satu QRIS bisa untuk banyak aplikasi yang membutuhkan pembayaran, tapi jika transaksinya tinggi harap di adjust untuk rentang kode unik dari 1-2000 agar lebih banyak slot untuk di pakai.
 
-Masih ada bugs di sini, beberapa bug itu merupakan rate limiting nanti bakalan di atasi.
+
+**Riwyat perubahan**
+Bugs: Transaksi tervalidasi dgn data yang usang/mutaisi lama.
+Bug di atasi, menggunakan pendekatan cache  saat membuat invoice pertama. Cek mutasi akan mengecualikan data lama.
+
+Bugs: pembuatan invoice kena rate limiting ketika ada lebih dari 4x permintaan.
+Bugs di atasi, menghapus pengambilan cache mutasi dan menambahka tanggal sebagai parameter batas invoice di buat. Saat melakukan cek mutasi, pencarian hanya akan berfokus pada data yang tanggalnya lebih tingggi dari tanggal invoice di buat. 
+
+Selengkapnya lihat di CHANGELOG.md

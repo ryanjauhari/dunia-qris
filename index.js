@@ -51,39 +51,28 @@ app.post('/api/buatinvoice', async (req, res) => {
     }
 
     if (availableCodes.length === 0) {
-        return res.status(400).json({ ok: false, error: 'Kode unik saat ini sedang tidak tersedia, mohon coba kembali nanti.' });
+        return res.status(400).json({ ok: false, error: 'Kode unik tidak tersedia, coba lagi nanti.' });
     }
 
-    const uniqueCode = availableCodes.shift(); // Ambil kode unik
+    const uniqueCode = availableCodes.shift();
     const invoiceAmount = amount + uniqueCode;
     const invoiceId = `INV-${Date.now()}-${uniqueCode}`;
 
-    try {
-        // Ambil snapshot mutasi sebelum invoice dibuat
-        const urlParam = `https://gateway.okeconnect.com/api/mutasi/qris/${merchant_code}/${api_key}`;
-        const response = await axios.get(urlParam);
-        const mutasiSebelum = response.data.data || []; // Simpan daftar transaksi sebelum invoice ini
+    invoices[invoiceId] = {
+        merchant_code,
+        api_key,
+        callback_url,
+        amount,
+        uniqueCode,
+        invoiceAmount,
+        interval,
+        createdAt: Date.now() 
+    };
 
-        // Simpan invoice dengan cache mutasi awal
-        invoices[invoiceId] = {
-            merchant_code,
-            api_key,
-            callback_url,
-            amount,
-            uniqueCode,
-            invoiceAmount,
-            interval,
-            createdAt: Date.now(),
-            cekMutasi: mutasiSebelum // Cache mutasi sebelum invoice dibuat
-        };
-
-        console.log(`Invoice baru : ${invoiceId} jumlah ${invoiceAmount}`);
-        res.json({ ok: true, invoice_id: invoiceId, amount: invoiceAmount });
-    } catch (error) {
-        console.error(`Gagal mengambil mutasi awal untuk invoice:`, error.message);
-        res.status(500).json({ ok: false, error: 'Gagal mengambil mutasi awal' });
-    }
+    console.log(`Invoice baru: ${invoiceId}, jumlah: ${invoiceAmount}`);
+    res.json({ ok: true, invoice_id: invoiceId, amount: invoiceAmount });
 });
+
 
 
 
@@ -104,7 +93,7 @@ app.post('/api/callback', (req, res) => {
     // Menentukan path file
     const filePath = path.join(folderPath, fileName);
     fs.writeFileSync(filePath, JSON.stringify(req.body, null, 2));
-    console.log(`Berhasil di simpan log`);
+    console.log(`Log internal berhasil di simpan ${fileName}`);
     res.status(200).send({ message: 'Berhasil menyimpan log!', file: fileName });
 });
 
@@ -113,43 +102,44 @@ app.post('/api/callback', (req, res) => {
 
 setInterval(async () => {
     const now = Date.now();
-    if (Object.keys(invoices).length === 0) {
-        return;
-    }
+    if (Object.keys(invoices).length === 0) return;
 
-    const sampleInvoice = Object.values(invoices)[0]; // Contoh satu invoice untuk API info
+    const sampleInvoice = Object.values(invoices)[0];
     const { merchant_code, api_key } = sampleInvoice;
     const urlParam = `https://gateway.okeconnect.com/api/mutasi/qris/${merchant_code}/${api_key}`;
-
+    
     try {
         const response = await axios.get(urlParam);
-        const mutasiBaru = response.data.data || []; // Semua transaksi baru
-
+        const mutasiBaru = response.data.data || [];
+        console.log(`mengammbil mutasi untuk }`);
         for (const [invoiceId, invoice] of Object.entries(invoices)) {
-            const { callback_url, uniqueCode, invoiceAmount, interval, createdAt, cekMutasi } = invoice;
+            const { callback_url, uniqueCode, invoiceAmount, interval, createdAt } = invoice;
 
-            // Filter hanya transaksi yang BELUM ADA dalam cache awal (cekMutasi)
-            const transaksiBaru = mutasiBaru.filter(item => !cekMutasi.some(old => old.id === item.id));
+            // Filter hanya transaksi yang tanggalnya lebih besar dari createdAt
+            const transaksiValid = mutasiBaru.filter(item => {
+                return parseInt(item.amount) === invoiceAmount && 
+                    new Date(item.date).getTime() > createdAt;
+            });
 
-            // Cek apakah ada transaksi baru yang cocok
-            const match = transaksiBaru.find(item => parseInt(item.amount) === invoiceAmount);
-
-            if (match) {
-                console.log(`✅ Invoice PAID : ${invoiceId} jumlah ${invoiceAmount}`);
-                await axios.post(callback_url, { invoice_id: invoiceId, status: 'PAID', data: match }, { headers: { 'Content-Type': 'application/json' } });
+            // Cek apakah ada transaksi yang cocok
+            if (transaksiValid.length > 0) {
+                console.log(`✅ Invoice PAID: ${invoiceId}, jumlah: ${invoiceAmount}`);
+                await axios.post(callback_url, { invoice_id: invoiceId, status: 'PAID', data: transaksiValid[0] });
                 delete invoices[invoiceId];
                 availableCodes.push(uniqueCode);
             } else if (now > createdAt + interval * 1000) {
-                console.log(`❌ Invoice EXPIRED : ${invoiceId} jumlah ${invoiceAmount}`);
-                await axios.post(callback_url, { invoice_id: invoiceId, status: 'EXPIRED' }, { headers: { 'Content-Type': 'application/json' } });
+                console.log(`❌ Invoice EXPIRED: ${invoiceId}, jumlah: ${invoiceAmount}`);
+                await axios.post(callback_url, { invoice_id: invoiceId, status: 'EXPIRED' });
                 delete invoices[invoiceId];
                 availableCodes.push(uniqueCode);
+                //console.log(`KODE TERSEDIA : ${availableCodes} `);
             }
         }
     } catch (error) {
         console.error(`Gagal Ambil Mutasi:`, error.message);
     }
-}, 20000); // 20 detik
+}, 20000);
+
 
 
 
