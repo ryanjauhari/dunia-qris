@@ -46,7 +46,7 @@ Untuk kebutuhan development, callback dii arahin ke /api/callback di lokal serve
 mekanisme pembayaran. Satu QRIS bisa untuk banyak aplikasi yang membutuhkan pembayaran, tapi jika transaksinya tinggi harap di adjust untuk rentang kode unik dari 1-2000 agar lebih banyak slot untuk di pakai.
 
 
-**Riwyat perubahan**
+**Riwyat perubahan**\
 Bugs: Transaksi tervalidasi dgn data yang usang/mutaisi lama.
 Bug di atasi, menggunakan pendekatan cache  saat membuat invoice pertama. Cek mutasi akan mengecualikan data lama.
 
