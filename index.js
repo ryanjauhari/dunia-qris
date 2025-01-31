@@ -70,7 +70,7 @@ app.post('/api/buatinvoice', async (req, res) => {
     };
 
     console.log(`Invoice baru: ${invoiceId}, jumlah: ${invoiceAmount}`);
-    res.json({ ok: true, invoice_id: invoiceId, amount: invoiceAmount });
+    res.json({ ok: true, invoice_id: invoiceId, amount: invoiceAmount, unique : uniqueCode });
 });
 
 
