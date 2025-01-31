@@ -1,0 +1,7 @@
+{
+    "merchant_code" : "KODE MERCHANT OKECONNECT",
+    "api_key" : "SECRET KEY NYA",
+    "callback_url" : "http://localhost:3000/api/callback",
+    "amount" : 5000,
+    "interval" : 300
+}

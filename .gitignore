@@ -1,0 +1,9 @@
+
+# ignore files
+sampel-invoice.json
+
+
+
+# Ignore node_modules folder
+node_modules/
+callback-log/*
