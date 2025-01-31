@@ -12,8 +12,8 @@ Cara menginstall cukup mudah, di terminal manapun yang sudah terpasang git, npm,
 ``git clone https://github.com/ryanjauhari/dunia-qris.git && cd dunia-qris && npm install && npm start``
 
 Server akan berjalan untuk menguji coba nya. Gunakan cURL, atau lebih gampang gunakan postman kirim data dalam file sampel-data.json atau sampel-invoice ke server. 
-Url servernya berikut ini 
-``JSON POST "http://localhost:3000/api/buatinvoice"``\
+Url servernya berikut ini \
+``JSON POST "http://localhost:3000/api/buatinvoice"``
 | Parameter | Keterangan | Status |
 |----------|----------|----------|
 | merchant_code | kode merchant QRIS API OKECON** | wajib |
@@ -24,7 +24,7 @@ Url servernya berikut ini
 
 
 
-/api/buatinvoice mengembalikan json dengan struktur format berikut\
+/api/buatinvoice mengembalikan json dengan struktur format berikut
 | Parameter | Keterangan |
 |----------|----------|
 | ok | status tindakan dalam format boolean true/false |
@@ -34,7 +34,7 @@ Url servernya berikut ini
 | unique | Berisi kode unik yang di tambahkan ke invoice pembayaran. |
 
 
-Callback, webhook yang di kirimkan oleh API ini berupa JSON juga dengan body seperti berikut\
+Callback, webhook yang di kirimkan oleh API ini berupa JSON juga dengan body seperti berikut
 | Parameter | Keterangan 
 |----------|----------|
 | status | Berisi status bisa PAID/EXPIRED |
