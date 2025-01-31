@@ -1,7 +1,7 @@
 
 # ignore files
 sampel-invoice.json
-
+app.log
 
 
 # Ignore node_modules folder

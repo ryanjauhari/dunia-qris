@@ -3,6 +3,7 @@ const axios = require('axios');
 const os = require('os');
 const app = express();
 const fs = require('fs');
+const fs1 = require('fs').promises;
 const path = require('path');
 
 
@@ -31,33 +32,32 @@ function getLocalAndNetworkIPs() {
     return ips;
 }
 
+
 async function writeLog(message) {
     try {
-      let data = '';
+      // Periksa apakah file ada
       try {
-        data = await fs.readFile(logFilePath, 'utf8');
-      } catch (err) {
-        if (err.code !== 'ENOENT') {
-          console.error('Error membaca file log:', err);
-          return;
-        }
-      }
-
-      const logLines = data ? data.split('\n') : [];
-      logLines.push(new Date().toISOString() +' : ' + message);
-      if (logLines.length > 1000) {
-        logLines.splice(0, logLines.length - 1000); 
+        await fs1.access(logFilePath);
+      } catch {
+        // Jika file tidak ada, buat file kosong
+        await fs1.writeFile(logFilePath, ''); // Menggunakan await karena fs.promises
       }
   
+      // Baca file log
+      const data = await fs1.readFile(logFilePath, 'utf8'); // Menggunakan await
+      const logLines = data ? data.split('\n') : [];
+      logLines.push(new Date().toISOString() + ' : ' + message);
+      if (logLines.length > 1000) {
+        logLines.splice(0, logLines.length - 1000);
+      }
+  
+      // Tulis kembali file log
       const newLogContent = logLines.join('\n');
-      await fs.writeFile(logFilePath, newLogContent, 'utf8');
+      await fs1.writeFile(logFilePath, newLogContent); // Menggunakan await
     } catch (err) {
       console.error('Error dalam menulis log:', err);
     }
   }
-
-
-
 
 
 
@@ -147,20 +147,20 @@ setInterval(async () => {
                 await axios.post(callback_url, { invoice_id: invoiceId, status: 'PAID', data: transaksiValid[0] });
                 delete invoices[invoiceId];
                 availableCodes.push(uniqueCode);
-                writeLog(`DONE : ${merchant_code} Kode unik Dibalikin ${uniqueCode}`);
+                writeLog(`PAID : ${merchant_code} ${invoiceId} Kode unik Dibalikin ${uniqueCode}`);
             } else if (now > createdAt + interval * 1000) {
                 console.log(`❌ Invoice EXPIRED: ${invoiceId}, jumlah: ${invoiceAmount}`);
                 await axios.post(callback_url, { invoice_id: invoiceId, status: 'EXPIRED' });
                 delete invoices[invoiceId];
                 availableCodes.push(uniqueCode);
-                writeLog(`DONE : ${merchant_code} Kode unik Dibalikin ${uniqueCode}`);
+                writeLog(`EXPIRED : ${merchant_code} ${invoiceId} Kode unik Dibalikin ${uniqueCode}`);
             }
         }
     } catch (error) {
         console.error(`Gagal Ambil Mutasi:`, error.message);
         writeLog(`ERROR : ${merchant_code} Error ${error.message}`);
     }
-}, 20000);
+}, 30000);
 
 
 

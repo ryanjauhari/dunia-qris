@@ -20,6 +20,11 @@
   "bugs": {
     "url": "https://github.com/ryanjauhari/dunia-qris/issues"
   },
+
+  "nodemonConfig": {
+    "ignore": ["callback-log/*"]
+  },
+
   "homepage": "https://github.com/ryanjauhari/dunia-qris#readme",
   "dependencies": {
     "axios": "^1.7.9",
